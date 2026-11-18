@@ -8,7 +8,8 @@ import java.nio.charset.StandardCharsets;
 
 /** Optional desktop companion. Starts after the Spring Boot server is running. */
 public class SwingConsole {
-    private static final String DASHBOARD_URL = System.getProperty("dashboard.url","https://algologguard-java.onrender.com");
+    private static final String DASHBOARD_URL =
+        "https://algologguard-java.onrender.com";
      private static final String API = System.getProperty("api.url","https://algologguard-java.onrender.com/api");
     public static void main(String[] args) { SwingUtilities.invokeLater(SwingConsole::show); }
     private static void show() {
@@ -27,35 +28,30 @@ public class SwingConsole {
         refresh.addActionListener(e -> { try { HttpResponse<String> res=HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create(API+"/health")).GET().build(),HttpResponse.BodyHandlers.ofString()); output.append("GET /health → "+res.statusCode()+"\n"+res.body()+"\n\n"); } catch(Exception ex){ output.append("Error: "+ex.getMessage()+"\n"); } });
         website.addActionListener(e -> {
     try {
-        if (!Desktop.isDesktopSupported()) {
-            throw new UnsupportedOperationException(
-                "Desktop is not supported on this system"
+        URI uri = URI.create(
+            "https://algologguard-java.onrender.com"
+        );
+
+        if (Desktop.isDesktopSupported()
+                && Desktop.getDesktop().isSupported(
+                    Desktop.Action.BROWSE)) {
+
+            Desktop.getDesktop().browse(uri);
+
+            output.append(
+                "Opening Render Dashboard: "
+                + uri + "\n"
+            );
+        } else {
+            output.append(
+                "Browser opening is not supported.\n"
             );
         }
-
-        Desktop desktop = Desktop.getDesktop();
-
-        if (!desktop.isSupported(Desktop.Action.BROWSE)) {
-            throw new UnsupportedOperationException(
-                "Browser opening is not supported"
-            );
-        }
-
-        URI dashboardUri = URI.create(DASHBOARD_URL);
-        desktop.browse(dashboardUri);
-
-        output.append("Opening dashboard: "
-                + DASHBOARD_URL + "\n");
 
     } catch (Exception ex) {
-        output.append("Dashboard error: "
-                + ex.getMessage() + "\n");
-
-        JOptionPane.showMessageDialog(
-            null,
-            "Unable to open dashboard:\n" + ex.getMessage(),
-            "Dashboard Error",
-            JOptionPane.ERROR_MESSAGE
+        output.append(
+            "Dashboard Error: "
+            + ex.getMessage() + "\n"
         );
     }
 });
