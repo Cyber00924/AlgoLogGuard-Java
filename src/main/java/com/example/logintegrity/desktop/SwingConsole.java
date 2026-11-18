@@ -8,7 +8,8 @@ import java.nio.charset.StandardCharsets;
 
 /** Optional desktop companion. Starts after the Spring Boot server is running. */
 public class SwingConsole {
-    private static final String API = System.getProperty("api.url", "http://localhost:8080/api");
+    private static final String DASHBOARD_URL = System.getProperty("dashboard.url","https://algologguard-java.onrender.com");
+     private static final String API = System.getProperty("api.url","https://algologguard-java.onrender.com/api");
     public static void main(String[] args) { SwingUtilities.invokeLater(SwingConsole::show); }
     private static void show() {
         JFrame frame=new JFrame("SecureLog • Integrity Console"); frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); frame.setSize(760,560); frame.setLocationRelativeTo(null);
@@ -24,7 +25,40 @@ public class SwingConsole {
         JPanel center=new JPanel(new BorderLayout(8,8)); center.setOpaque(false); center.add(form,BorderLayout.NORTH); center.add(new JScrollPane(output),BorderLayout.CENTER); center.add(actions,BorderLayout.SOUTH); root.add(center,BorderLayout.CENTER);
         submit.addActionListener(e -> { try { String json="{\"severity\":\""+esc(severity.getSelectedItem().toString())+"\",\"source\":\""+esc(source.getText())+"\",\"eventType\":\""+esc(type.getText())+"\",\"message\":\""+esc(message.getText())+"\",\"actor\":\""+esc(actor.getText())+"\",\"ipAddress\":\""+esc(ip.getText())+"\"}"; HttpRequest req=HttpRequest.newBuilder(URI.create(API+"/logs")).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(json)).build(); HttpResponse<String> res=HttpClient.newHttpClient().send(req,HttpResponse.BodyHandlers.ofString()); output.append("POST /logs → "+res.statusCode()+"\n"+res.body()+"\n\n"); } catch(Exception ex){ output.append("Error: "+ex.getMessage()+"\n"); } });
         refresh.addActionListener(e -> { try { HttpResponse<String> res=HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create(API+"/health")).GET().build(),HttpResponse.BodyHandlers.ofString()); output.append("GET /health → "+res.statusCode()+"\n"+res.body()+"\n\n"); } catch(Exception ex){ output.append("Error: "+ex.getMessage()+"\n"); } });
-        website.addActionListener(e -> { try { Desktop.getDesktop().browse(URI.create("http://localhost:8080")); } catch(Exception ex){ output.append(ex.getMessage()); } });
+        website.addActionListener(e -> {
+    try {
+        if (!Desktop.isDesktopSupported()) {
+            throw new UnsupportedOperationException(
+                "Desktop is not supported on this system"
+            );
+        }
+
+        Desktop desktop = Desktop.getDesktop();
+
+        if (!desktop.isSupported(Desktop.Action.BROWSE)) {
+            throw new UnsupportedOperationException(
+                "Browser opening is not supported"
+            );
+        }
+
+        URI dashboardUri = URI.create(DASHBOARD_URL);
+        desktop.browse(dashboardUri);
+
+        output.append("Opening dashboard: "
+                + DASHBOARD_URL + "\n");
+
+    } catch (Exception ex) {
+        output.append("Dashboard error: "
+                + ex.getMessage() + "\n");
+
+        JOptionPane.showMessageDialog(
+            null,
+            "Unable to open dashboard:\n" + ex.getMessage(),
+            "Dashboard Error",
+            JOptionPane.ERROR_MESSAGE
+        );
+    }
+});
         frame.setContentPane(root); frame.setVisible(true);
     }
     private static void add(JPanel p,String label,JComponent c){ JLabel l=new JLabel(label); l.setForeground(new Color(180,197,221)); p.add(l); p.add(c); }
