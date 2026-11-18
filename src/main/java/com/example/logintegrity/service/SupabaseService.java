@@ -36,4 +36,21 @@ public class SupabaseService {
         List<Map> rows = client.get().uri(uri -> uri.path("/security_logs").queryParam("select", "*").queryParam("id", "eq."+id).queryParam("limit", 1).build()).retrieve().body(List.class);
         return rows == null || rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
+    public void updateIntegrity(String id, boolean valid) {
+    if (!configured) {
+        throw new IllegalStateException("Supabase is not configured.");
+    }
+
+    Map<String, Object> update = new LinkedHashMap<>();
+    update.put("integrity_valid", valid);
+
+    client.patch()
+            .uri(uri -> uri.path("/security_logs")
+                    .queryParam("id", "eq." + id)
+                    .build())
+            .header("Prefer", "return=minimal")
+            .body(update)
+            .retrieve()
+            .toBodilessEntity();
+}
 }
